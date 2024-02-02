@@ -2,6 +2,7 @@ package main
 
 import (
 	"GPT/constant"
+	"GPT/model"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -13,43 +14,42 @@ import (
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
+
+	msgs := []model.Messages{}
 	for {
-		fmt.Print("You:")
+		fmt.Print("You: ")
 		scanner.Scan()
 		input := scanner.Text()
 		if input == "exit" {
 			break
 		}
-		output, err := sendGPTRequest(input)
+
+		if input == "clear" {
+			msgs = []model.Messages{}
+		}
+
+		msgs = append(msgs, model.Messages{
+			Role:    "user",
+			Content: input,
+		})
+
+		output, err := sendGPTRequest(msgs)
 		if err != nil {
 			fmt.Printf("Failed. %v\n", err)
 			continue
 		}
 
 		fmt.Println("GPT:", output)
+		fmt.Println()
 	}
 }
 
 var client = &http.Client{}
 
-type Req struct {
-	Model string     `json:"model"`
-	Msg   []Messages `json:"messages"`
-}
-
-type Messages struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-func sendGPTRequest(inputText string) (string, error) {
-	msg := Messages{
-		Role:    "user",
-		Content: inputText,
-	}
-	payload, err := json.Marshal(Req{
+func sendGPTRequest(msg []model.Messages) (string, error) {
+	payload, err := json.Marshal(model.Req{
 		Model: "gpt-3.5-turbo",
-		Msg:   []Messages{msg},
+		Msg:   msg,
 	})
 	if err != nil {
 		return "", fmt.Errorf("marshal failed. %v", err)
@@ -62,7 +62,7 @@ func sendGPTRequest(inputText string) (string, error) {
 	req.Header.Set("Authorization", "Bearer "+constant.ApiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	var response ApifoxModel
+	var response model.ApifoxModel
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -83,29 +83,4 @@ func sendGPTRequest(inputText string) (string, error) {
 	}
 
 	return response.Choices[0].Message.Content, nil
-}
-
-type ApifoxModel struct {
-	Choices []Choice `json:"choices"`
-	Created int64    `json:"created"`
-	ID      string   `json:"id"`
-	Object  string   `json:"object"`
-	Usage   Usage    `json:"usage"`
-}
-
-type Choice struct {
-	FinishReason *string  `json:"finish_reason,omitempty"`
-	Index        *int64   `json:"index,omitempty"`
-	Message      *Message `json:"message,omitempty"`
-}
-
-type Message struct {
-	Content string `json:"content"`
-	Role    string `json:"role"`
-}
-
-type Usage struct {
-	CompletionTokens int64 `json:"completion_tokens"`
-	PromptTokens     int64 `json:"prompt_tokens"`
-	TotalTokens      int64 `json:"total_tokens"`
 }
