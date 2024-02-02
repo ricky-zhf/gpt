@@ -13,6 +13,8 @@ import (
 var client = &http.Client{}
 
 func SendGPTRequest(msg []model.Messages) (string, error) {
+	s := model.NewSpin()
+	s.Start()
 	payload, err := json.Marshal(model.Req{
 		Model: "gpt-3.5-turbo",
 		Msg:   msg,
@@ -28,12 +30,13 @@ func SendGPTRequest(msg []model.Messages) (string, error) {
 	req.Header.Set("Authorization", "Bearer "+constant.ApiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	var response model.ApifoxModel
+	var response model.Response
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
+	s.Stop()
 
 	if resp.StatusCode != 200 {
 		return "", fmt.Errorf("req failed. %v", resp.Status)

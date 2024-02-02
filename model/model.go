@@ -10,7 +10,7 @@ type Messages struct {
 	Content string `json:"content"`
 }
 
-type ApifoxModel struct {
+type Response struct {
 	Choices []Choice `json:"choices"`
 	Created int64    `json:"created"`
 	ID      string   `json:"id"`
